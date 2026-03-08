@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Plus, User, Menu, X, ShoppingBag, LayoutDashboard } from "lucide-react";
+import { BookOpen, Plus, Menu, X, ShoppingBag, LayoutDashboard } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   SignInButton, 
   UserButton, 
-  Show,
+  SignedIn, 
+  SignedOut,
   useAuth 
 } from "@clerk/nextjs";
 
@@ -21,10 +22,6 @@ const Navbar = () => {
 
   const handleProtectedClick = (path: string) => {
     if (!isSignedIn) {
-      // If not signed in, we can either redirect to a sign-in page 
-      // or just open the sign-in modal if we prefer.
-      // Redirecting to /auth is what caused the confusion before.
-      // We'll use router.push with a clerk path or just rely on middleware.
       router.push("/sign-in"); 
     } else {
       router.push(path);
@@ -82,7 +79,7 @@ const Navbar = () => {
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
           <div className="hidden items-center gap-4 md:flex">
-            <Show when="signed-in">
+            <SignedIn>
               <Button 
                 size="sm" 
                 className="rounded-full bg-primary px-5 font-semibold hover:shadow-md transition-all"
@@ -91,14 +88,14 @@ const Navbar = () => {
                 <Plus className="mr-1.5 h-4 w-4" /> List a Book
               </Button>
               <UserButton afterSignOutUrl="/" />
-            </Show>
-            <Show when="signed-out">
+            </SignedIn>
+            <SignedOut>
               <SignInButton mode="modal">
                 <Button className="rounded-full px-6 font-semibold">
                   Sign In
                 </Button>
               </SignInButton>
-            </Show>
+            </SignedOut>
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -148,19 +145,19 @@ const Navbar = () => {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                <Show when="signed-in">
+                <SignedIn>
                   <div className="flex items-center justify-between p-2">
                     <span className="text-sm font-medium text-muted-foreground">Account</span>
                     <UserButton afterSignOutUrl="/" />
                   </div>
-                </Show>
-                <Show when="signed-out">
+                </SignedIn>
+                <SignedOut>
                   <SignInButton mode="modal">
                     <Button className="w-full rounded-xl py-6 text-lg font-bold">
                       Sign In
                     </Button>
                   </SignInButton>
-                </Show>
+                </SignedOut>
               </motion.div>
             </div>
           </motion.div>
