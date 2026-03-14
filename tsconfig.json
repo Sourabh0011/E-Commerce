@@ -38,6 +38,7 @@
     "**/*.tsx",
     "api/**/*.ts",
     "backend/**/*.ts",
+    "src/pages/**/*.ts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
