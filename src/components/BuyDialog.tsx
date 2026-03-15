@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { MapPin, CreditCard, Banknote, Loader2 } from "lucide-react";
+import { loadRazorpayScript } from "@/lib/razorpay";
 
 interface BuyDialogProps {
   open: boolean;
@@ -44,8 +45,33 @@ const BuyDialog = ({ open, onOpenChange, book }: BuyDialogProps) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const createTransaction = async () => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+    const res = await fetch(`${apiUrl}/transactions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-clerk-id": user?.id || "",
+      },
+      body: JSON.stringify({
+        bookId: book.id,
+        sellerId: book.sellerId,
+        type: "purchase",
+        paymentMethod,
+        address_line: form.address_line,
+        city: form.city,
+        state: form.state,
+        pincode: form.pincode,
+        phone: form.phone,
+      }),
+    });
+
+    if (!res.ok) throw new Error("Failed to place order");
+    return res.json();
+  };
+
   const handleSubmit = async () => {
-    if (!isLoaded || !isSignedIn) {
+    if (!isLoaded || !isSignedIn || !user) {
       router.push("/sign-in");
       return;
     }
@@ -59,33 +85,87 @@ const BuyDialog = ({ open, onOpenChange, book }: BuyDialogProps) => {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-      const res = await fetch(`${apiUrl}/transactions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-clerk-id": user.id,
-        },
-        body: JSON.stringify({
-          bookId: book.id,
-          sellerId: book.sellerId,
-          type: "purchase",
-          paymentMethod,
-          address_line: form.address_line,
-          city: form.city,
-          state: form.state,
-          pincode: form.pincode,
-          phone: form.phone,
-        }),
-      });
 
-      if (!res.ok) throw new Error("Failed to place order");
+      if (paymentMethod === "online") {
+        const resScript = await loadRazorpayScript();
 
-      toast({ title: "Order Placed! ✅", description: "The seller has been notified. You'll hear back soon." });
-      onOpenChange(false);
-      setForm({ address_line: "", city: "", state: "", pincode: "", phone: "" });
+        if (!resScript) {
+          toast({ title: "Razorpay SDK failed to load", variant: "destructive" });
+          setSubmitting(false);
+          return;
+        }
+
+        // Create Order on Backend
+        const orderRes = await fetch(`${apiUrl}/payments/order`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "x-clerk-id": user.id 
+          },
+          body: JSON.stringify({ amount: book.price || 0 }),
+        });
+
+        const orderData = await orderRes.json();
+
+        const options = {
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_live_SOmxxpTgaLdsdy",
+          amount: orderData.amount,
+          currency: orderData.currency,
+          name: "BookBazzar",
+          description: `Payment for "${book.title}"`,
+          order_id: orderData.id,
+          handler: async function (response: any) {
+            // Verify Payment on Backend
+            const verifyRes = await fetch(`${apiUrl}/payments/verify`, {
+              method: "POST",
+              headers: { 
+                "Content-Type": "application/json",
+                "x-clerk-id": user.id 
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+
+            if (verifyData.success) {
+              await createTransaction();
+              toast({ title: "Order Placed! ✅", description: "Payment successful and seller notified." });
+              onOpenChange(false);
+              setForm({ address_line: "", city: "", state: "", pincode: "", phone: "" });
+            } else {
+              toast({ title: "Payment Verification Failed", variant: "destructive" });
+            }
+            setSubmitting(false);
+          },
+          prefill: {
+            name: user.fullName || "",
+            email: user.primaryEmailAddress?.emailAddress || "",
+            contact: form.phone,
+          },
+          theme: { color: "#3b82f6" },
+          modal: {
+            ondismiss: function() {
+              setSubmitting(false);
+            }
+          }
+        };
+
+        const paymentObject = new (window as any).Razorpay(options);
+        paymentObject.open();
+      } else {
+        // Cash on Delivery
+        await createTransaction();
+        toast({ title: "Order Placed! ✅", description: "The seller has been notified. You'll hear back soon." });
+        onOpenChange(false);
+        setForm({ address_line: "", city: "", state: "", pincode: "", phone: "" });
+        setSubmitting(false);
+      }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
       setSubmitting(false);
     }
   };
