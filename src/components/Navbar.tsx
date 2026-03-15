@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Plus, Menu, X, ShoppingBag, LayoutDashboard } from "lucide-react";
+import { BookOpen, Plus, Menu, X, ShoppingBag, LayoutDashboard, ShoppingCart } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useCart } from "@/hooks/useCart";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   SignInButton, 
@@ -19,6 +20,7 @@ const Navbar = () => {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { cartCount } = useCart();
 
   const handleProtectedClick = (path: string) => {
     if (!isSignedIn) {
@@ -78,6 +80,18 @@ const Navbar = () => {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
+          {/* Cart Button */}
+          <Link href="/cart">
+            <Button variant="ghost" size="icon" className="relative rounded-xl hover:bg-primary/10 transition-colors">
+              <ShoppingCart className="h-5 w-5" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  {cartCount}
+                </span>
+              )}
+            </Button>
+          </Link>
+
           <div className="hidden items-center gap-4 md:flex">
             <SignedIn>
               <Button 

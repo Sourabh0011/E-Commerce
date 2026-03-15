@@ -7,17 +7,21 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { useState } from "react";
 import { SyncUser } from "./SyncUser";
 
+import { CartProvider } from "@/hooks/useCart";
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <SyncUser />
-        {children}
-        <Toaster />
-        <Sonner />
-      </TooltipProvider>
+      <CartProvider>
+        <TooltipProvider>
+          <SyncUser />
+          {children}
+          <Toaster />
+          <Sonner />
+        </TooltipProvider>
+      </CartProvider>
     </QueryClientProvider>
   );
 }

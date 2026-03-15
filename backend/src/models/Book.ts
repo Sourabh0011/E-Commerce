@@ -10,6 +10,14 @@ export interface IBook extends Document {
   category: string;
   description?: string;
   image_url?: string;
+  image_urls: string[];
+  reviews: {
+    user: mongoose.Types.ObjectId;
+    username: string;
+    rating: number;
+    comment: string;
+    created_at: Date;
+  }[];
   created_at: Date;
 }
 
@@ -24,8 +32,18 @@ const BookSchema: Schema = new Schema(
     category: { type: String, default: "Other" },
     description: { type: String, default: "" },
     image_url: { type: String, default: "" },
+    image_urls: [{ type: String }],
+    reviews: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        username: { type: String },
+        rating: { type: Number, required: true, min: 1, max: 5 },
+        comment: { type: String, required: true },
+        created_at: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
 );
 
-export default mongoose.model<IBook>("Book", BookSchema);
+export default mongoose.models.Book || mongoose.model<IBook>("Book", BookSchema);

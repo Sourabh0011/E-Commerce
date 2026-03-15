@@ -23,12 +23,27 @@ export const createBook = async (req: any, res: Response) => {
       category,
       description,
       image_url,
+      image_urls: image_url ? [image_url] : [],
     } as any);
 
     res.status(201).json(book);
   } catch (error: any) {
     console.error("Create Book Error:", error);
     res.status(500).json({ message: "Error creating book listing", error: error.message });
+  }
+};
+
+// @desc    Get a single book by ID
+// @route   GET /api/books/:id
+export const getSingleBook = async (req: Request, res: Response) => {
+  try {
+    const book = await Book.findById(req.params.id).populate("user", "username avatar_url");
+    if (!book) {
+      return res.status(404).json({ message: "Book not found" });
+    }
+    res.json(book);
+  } catch (error: any) {
+    res.status(500).json({ message: "Error fetching book details", error: error.message });
   }
 };
 
