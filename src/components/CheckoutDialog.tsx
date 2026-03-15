@@ -113,6 +113,11 @@ const CheckoutDialog = ({ open, onOpenChange, cartItems, onSuccess }: CheckoutDi
           body: JSON.stringify({ amount: totalAmount }),
         });
 
+        if (!orderRes.ok) {
+          const errorData = await orderRes.json();
+          throw new Error(errorData.message || "Failed to create Razorpay order");
+        }
+
         const orderData = await orderRes.json();
 
         const options = {

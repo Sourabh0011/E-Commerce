@@ -105,6 +105,11 @@ const BuyDialog = ({ open, onOpenChange, book }: BuyDialogProps) => {
           body: JSON.stringify({ amount: book.price || 0 }),
         });
 
+        if (!orderRes.ok) {
+          const errorData = await orderRes.json();
+          throw new Error(errorData.message || "Failed to create Razorpay order");
+        }
+
         const orderData = await orderRes.json();
 
         const options = {
